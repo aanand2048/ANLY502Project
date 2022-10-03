@@ -52,7 +52,12 @@ colnames(Cars_Data)
 ```{r Missing Data, echo=FALSE, results='hide'}
 sum(is.na(Cars_Data)) # We see that there are no NAs.
 ```
+## Exploratory Data Analysis
+
+### Data Summary
 
 ```{r echo=FALSE, results='hide'}
-describe(Cars_Data)
+describe(Cars_Data[10:20]) # Skip First 9 Columns that are just the type of vehicle [binary yes = 1, no = 0]
 ```
+
+
