@@ -1,6 +1,6 @@
 ---
 title: "Project"
-author: "Abhishek Anand"
+author: "Abhishek Anand, Mehul Jindal, Rosalia Giaccone"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
