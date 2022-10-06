@@ -1,0 +1,63 @@
+---
+title: "Project"
+author: "Abhishek Anand"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/aanan/Documents/HUST Academics/Fall 2022/502/Project/") # change this to the folder that has your project files
+library("Hmisc")
+```
+
+# Personal Vehicles Pricing and Features
+
+## Introduction
+
+```{r echo=FALSE}
+Cars_Data <- readxl::read_excel("Cars_Data.xls") # Reading XLS excel file
+```
+
+The Cars and Trucks Data lists specifications for 428 different vehicles from the year 2004, including factors related to the type of vehicle, prices, size, functionality, and fuel efficiency.
+
+The data is accessible via the following link: http://jse.amstat.org/datasets/04cars.dat.txt
+
+The variables contained in the data include the following:
+
+- Type of Vehicle – the variants of vehicles named include the following: Sports, SUV, Wagon, Minivan, Pickup, AWD, RWD
+- Dealer cost – the amount dealers pay manufacturers to buy the vehicle
+- Engine size (liters)
+- Number of Cylinders (=-1 if rotary engine)
+- Horsepower
+- City Miles per Gallon
+- Highway Miles per Gallon
+- Weight (pounds)
+- Wheel Base (inches)
+- Length (inches)
+- Width (inches)
+
+
+```{r echo=FALSE, results='hide'}
+dim(Cars_Data)
+```
+
+
+```{r echo=FALSE, results='hide'}
+colnames(Cars_Data)
+```
+
+```{r Missing Data, echo=FALSE, results='hide'}
+sum(is.na(Cars_Data)) # We see that there are no NAs.
+```
+## Exploratory Data Analysis
+
+### Data Summary
+
+```{r echo=FALSE, results='hide'}
+describe(Cars_Data[10:20]) # Skip First 9 Columns that are just the type of vehicle [binary yes = 1, no = 0]
+```
+
+
