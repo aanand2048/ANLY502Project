@@ -60,4 +60,10 @@ sum(is.na(Cars_Data)) # We see that there are no NAs.
 describe(Cars_Data[10:20]) # Skip First 9 Columns that are just the type of vehicle [binary yes = 1, no = 0]
 ```
 
+### Data Visualizations
+
+
+
+### Inference
+
 

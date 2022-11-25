@@ -10,8 +10,42 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 setwd("C:/Users/aanan/Documents/HUST Academics/Fall 2022/502/Project/") # change this to the folder that has your project files
-library("Hmisc")
+library(Hmisc)
+library(Rmisc)
+library(psych)
+library(moments)
+library(VIM, quietly = T)
+library(mice)
+library(corrplot)
+library(rio)
+library(ggplot2)
+library(cocor)
+library(ppcor)
+library(MOTE)
+library(pwr)
+library(papaja)
+library(data.table)
+library(MASS)
+library(reshape2)
+library(reshape)
+library(tidyverse)
+library(ez)
+library(knitr)
+library(dplyr)
+library(statsr)
 ```
+
+
+```{r, echo=FALSE, warning=FALSE, include=FALSE}
+cleanup <- theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(), 
+                panel.background = element_blank(), 
+                axis.line.x = element_line(color = "black"),
+                axis.line.y = element_line(color = "black"),
+                legend.key = element_rect(fill = "white"),
+                text = element_text(size = 10))
+```
+
 
 # Personal Vehicles Pricing and Features
 
@@ -19,6 +53,14 @@ library("Hmisc")
 
 ```{r echo=FALSE}
 Cars_Data <- readxl::read_excel("Cars_Data.xls") # Reading XLS excel file
+Cars_Data <- rename(Cars_Data, "Sedan" = "Small/Sporty/ Compact/Large Sedan")
+Cars_Data <- rename(Cars_Data, "Sports_Car" = "Sports Car")
+Cars_Data <- rename(Cars_Data, "Retail_Price" = "Retail Price")
+Cars_Data <- rename(Cars_Data, "Dealer_Cost" = "Dealer Cost")
+Cars_Data <- rename(Cars_Data, "Engine_Size" = "Engine Size (l)")
+Cars_Data <- rename(Cars_Data, "City_MPG" = "City MPG")
+Cars_Data <- rename(Cars_Data, "Hwy_MPG" = "Hwy MPG")
+Cars_Data <- rename(Cars_Data, "Wheel_Base" = "Wheel Base")
 ```
 
 The Cars and Trucks Data lists specifications for 428 different vehicles from the year 2004, including factors related to the type of vehicle, prices, size, functionality, and fuel efficiency.
@@ -49,15 +91,187 @@ dim(Cars_Data)
 colnames(Cars_Data)
 ```
 
-```{r Missing Data, echo=FALSE, results='hide'}
-sum(is.na(Cars_Data)) # We see that there are no NAs.
+### As Numeric
+
+```{r}
+cols.num <- c("City_MPG", "Hwy_MPG", "Weight", "Wheel_Base", "Len", "Width")
+Cars_Data[cols.num] <- sapply(Cars_Data[cols.num], as.numeric)
 ```
+
+## Missing Data
+
+```{r Missing Data, echo=FALSE, results='hide'}
+percentmiss <- function(x){sum(is.na(x))/length(x)*100}
+missing <- apply(Cars_Data, 1, percentmiss)
+table(missing)
+```
+
+```{r}
+noerr <- Cars_Data
+```
+
+For data accuracy, we will replace data using built in software for anything at or below 10% missing data. We will ignore any entries missing more than 10%.
+
+```{r}
+replace_rows <- subset(noerr, missing <= 10)
+noreplace_rows <- subset(noerr, missing >10)
+```
+
+Below we check for MNAR,
+
+```{r}
+apply(replace_rows,2,percentmiss)
+```
+
+```{r}
+replace_columns <- replace_rows[, -c(1)]
+noreplace_columns <- replace_rows[,c(1)]
+```
+
+```{r}
+temp_no_miss <- mice(replace_columns, seed = 7)
+
+nomiss <- complete(temp_no_miss, 1)
+
+all_columns <- cbind(noreplace_columns,nomiss)
+summary(all_columns)
+```
+
+No more missing values!
+
+### Outliers
+
+```{r}
+mahal <- mahalanobis(all_columns[ , -1],
+                    colMeans(all_columns[ , -1], na.rm=TRUE),
+                    cov(all_columns[ , -1], use ="pairwise.complete.obs"),
+                    tol=1e-30)
+cutmahal <- qchisq(1-.001, ncol(all_columns[,-1]))
+
+badmahal <- as.numeric(mahal >cutmahal)
+table(badmahal)
+```
+
+```{r}
+model1 <- lm(Retail_Price ~ Dealer_Cost + HP
+                            + Engine_Size + Cyl
+                            + City_MPG + Hwy_MPG 
+                            + Weight + Wheel_Base
+                            + Len + Width
+                            + Sedan + Sports_Car
+                            + SUV + Wagon
+                            + Minivan + Pickup
+                            + AWD + RWD,
+          data = all_columns)
+```
+
+```{r}
+k <- 18
+leverage <- hatvalues(model1)
+cutleverage <- (2*k+2)/nrow(all_columns)
+badleverage <- as.numeric(leverage > cutleverage)
+table(badleverage)
+```
+
+```{r}
+cooks <- cooks.distance(model1)
+cutcooks <- 4 / (nrow(all_columns) - k - 1)
+badcooks <- as.numeric(cooks > cutcooks)
+table(badcooks)
+```
+
+```{r}
+totalout <- badmahal + badleverage + badcooks
+table(totalout)
+```
+
+We see that there are 8 cars that are outliers based on all three methods, and 7 based on at least two methods. Hence, we will remove these.
+
+```{r}
+noout <- subset(all_columns,totalout<2)
+```
+
+We have removed outliers.
+
+```{r}
+model2 <- lm(Retail_Price ~ Dealer_Cost + HP
+                            + Engine_Size + Cyl
+                            + City_MPG + Hwy_MPG 
+                            + Weight + Wheel_Base
+                            + Len + Width
+                            + Sedan + Sports_Car
+                            + SUV + Wagon
+                            + Minivan + Pickup
+                            + AWD + RWD,
+          data = all_columns)
+```
+
+## Assumptions
+
+### Additivity
+
+```{r}
+summary(model2, correlation = TRUE)
+```
+
+There are some factors that are strongly correlated!
+
+### Linearity
+
+```{r linearity}
+standardized <- rstudent(model2)
+fitted <- scale(model2$fitted.values)
+```
+
+```{r}
+{qqnorm(standardized)
+abline(0,1)}
+```
+
+Linearity met.
+
+### Normality
+
+```{r normality}
+hist(standardized)
+```
+
+Normality met.
+
+### Homogeneity and Homoscedasticity
+
+```{r homogs}
+{plot(fitted, standardized)
+abline(0,0)
+abline(v = 0)}
+```
+
+## Generate Categorical Data
+
+```{r}
+noout$Weighted_MPG <- (noout$City_MPG + noout$Hwy_MPG)/2
+summary(noout$Weighted_MPG)
+noout$MPG_Cat <- as.factor(ifelse(noout$Weighted_MPG < 21, "Low_MPG",
+                            ifelse(noout$Weighted_MPG > 25, "High_MPG","Medium_MPG")))
+summary(noout$MPG_Cat)
+```
+
 ## Exploratory Data Analysis
 
-### Data Summary
+## Hypothesis Test 1 - Engine_Size Difference in MPG Difference
 
-```{r echo=FALSE, results='hide'}
-describe(Cars_Data[10:20]) # Skip First 9 Columns that are just the type of vehicle [binary yes = 1, no = 0]
+```{r}
+inference(y = noout$Engine_Size, x = noout$MPG_Cat, est = "mean", type = "ht", null = 0, 
+          alternative = "greater", method = "theoretical")
 ```
 
+From output, we see that each of the three groups are unequal to each other. Hence, we reject null hypothesis.
+
+From the box plots, we see that vehicles in High MPG category have the smallest Engine sizes, vehicles in the lowest MPG category have the largest engine sizes.
+
+## Hypothesis Test 2 - Highway MPG vs City MPG
+
+```{r}
+
+```
 
