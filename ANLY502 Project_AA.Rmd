@@ -272,6 +272,14 @@ From the box plots, we see that vehicles in High MPG category have the smallest 
 ## Hypothesis Test 2 - Highway MPG vs City MPG
 
 ```{r}
+noout$mpg_diff <- noout$Hwy_MPG - noout$City_MPG
 
+inference(y=noout$mpg_diff, est="mean", type="ci", method = "theoretical")
 ```
 
+From the above output, we see that the 95% confidence interval does not contain 0. Hence, null hypothesis that the highway mpg and city mpg are equal is rejected. We see that, on average, highway mpg is 6.7 to 7.1 mpg higher than city mpg.
+
+```{r}
+inference(y=noout$mpg_diff, est="mean", type="ht", method = "theoretical",
+          alternative = "greater")
+```
