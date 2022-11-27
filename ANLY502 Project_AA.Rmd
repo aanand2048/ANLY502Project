@@ -3,8 +3,8 @@ title: "Project"
 author: "Abhishek Anand, Mehul Jindal, Rosalia Giaccone"
 date: "`r Sys.Date()`"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -279,7 +279,29 @@ inference(y=noout$mpg_diff, est="mean", type="ci", method = "theoretical")
 
 From the above output, we see that the 95% confidence interval does not contain 0. Hence, null hypothesis that the highway mpg and city mpg are equal is rejected. We see that, on average, highway mpg is 6.7 to 7.1 mpg higher than city mpg.
 
+## Hypothesis Test 3
+
 ```{r}
-inference(y=noout$mpg_diff, est="mean", type="ht", method = "theoretical",
-          alternative = "greater")
+colnames(noout)
+```
+
+```{r}
+noout_v2 <- melt(noout, id.vars=c("Vehicle Name","AWD","RWD","Retail_Price",
+                                  "Dealer_Cost","Engine_Size", "Cyl","HP","City_MPG",
+                                  "Hwy_MPG","Weight","Wheel_Base","Len","Width","Weighted_MPG",
+                                  "MPG_Cat","mpg_diff"))
+noout_v2 <- subset(noout_v2, noout_v2$value==1)
+```
+
+```{r}
+inference(y = noout_v2$Retail_Price, x = noout_v2$variable, est = "mean", type = "ht", null = 0, 
+          alternative = "greater", method = "theoretical")
+```
+
+We see that the prices for different vehicles are not the same. We reject null hypothesis of equal means in favor of the alternative.
+
+## Modeling
+
+```{r}
+summary(model2)
 ```
