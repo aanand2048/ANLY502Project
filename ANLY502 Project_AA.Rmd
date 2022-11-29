@@ -189,6 +189,7 @@ We see that there are 8 cars that are outliers based on all three methods, and 7
 
 ```{r}
 noout <- subset(all_columns,totalout<2)
+onlyout <- subset(all_columns, totalout>=2)
 ```
 
 We have removed outliers.
@@ -215,6 +216,12 @@ summary(model2, correlation = TRUE)
 ```
 
 There are some factors that are strongly correlated!
+
+```{r}
+corrplot(cor(noout[,-c(1,22)]))
+```
+
+Here, we see City_MPG and Hwy_MPG are highly correlated. We will only use Hwy_MPG in our modeling.
 
 ### Linearity
 
@@ -256,12 +263,162 @@ noout$MPG_Cat <- as.factor(ifelse(noout$Weighted_MPG < 21, "Low_MPG",
 summary(noout$MPG_Cat)
 ```
 
+```{r}
+noout$mpg_diff <- noout$Hwy_MPG - noout$City_MPG
+
+noout_v2 <- melt(noout, id.vars=c("Vehicle Name","AWD","RWD","Retail_Price",
+                                  "Dealer_Cost","Engine_Size", "Cyl","HP","City_MPG",
+                                  "Hwy_MPG","Weight","Wheel_Base","Len","Width","Weighted_MPG",
+                                  "MPG_Cat","mpg_diff"))
+noout_v2 <- subset(noout_v2, noout_v2$value==1)
+```
+
+## Summary Stats
+
+```{r}
+kable(summary(noout))
+```
+
+```{r}
+kable(apply(noout,2,sd))
+```
+
+
+## Plots
+
+```{r}
+noout%>%
+  ggplot(aes(Retail_Price))+
+  geom_histogram(bins=30)+
+  labs(title = 'Distribution of Retail Prices',
+       y='Frequency',
+       x='Retail Price')+
+  cleanup +
+  coord_cartesian(ylim = c(0,50))
+```
+
+```{r}
+noout%>%
+  ggplot(aes(Dealer_Cost, Retail_Price))+
+  geom_point(alpha = 0.1) +
+  #geom_histogram(bins=75)+
+  labs(title = 'Retail Price and Dealer Cost',
+       y='Retail Price',
+       x='Dealer Cost')+
+  cleanup #+
+  #coord_cartesian(xlim = c(1,100), ylim = c(0,4000000))
+#+ geom_smooth(method = 'lm', se=FALSE, color='navyblue')
+```
+
+```{r}
+noout%>%
+  ggplot(aes(Engine_Size, Retail_Price))+
+  geom_point(alpha = 0.1) +
+  #geom_histogram(bins=75)+
+  labs(title = 'Retail Price by Engine Size',
+       y='Retail Price',
+       x='Engine Size')+
+  cleanup +
+  #coord_cartesian(xlim = c(1,100), ylim = c(0,4000000))
+ geom_smooth(method = 'lm', se=FALSE, color='lightgreen')
+```
+
+```{r}
+noout%>%
+  ggplot(aes(Weighted_MPG, Retail_Price))+
+  geom_point(alpha = 0.1) +
+  #geom_histogram(bins=75)+
+  labs(title = 'Retail Price by Mileage',
+       y='Retail Price',
+       x='Weighted MPG')+
+  cleanup +
+  #coord_cartesian(xlim = c(1,100), ylim = c(0,4000000))
+ geom_smooth(method = 'lm', se=FALSE, color='lightgreen')
+```
+
+```{r}
+noout%>%
+  ggplot(aes(Weight, Retail_Price))+
+  geom_point(alpha = 0.1) +
+  #geom_histogram(bins=75)+
+  labs(title = 'Retail Price by Vehicle Weight',
+       y='Retail Price',
+       x='Vehicle Weight')+
+  cleanup +
+  #coord_cartesian(xlim = c(1,100), ylim = c(0,4000000))
+ geom_smooth(method = 'lm', se=FALSE, color='lightgreen')
+```
+
+```{r}
+noout%>%
+  ggplot(aes(HP, Retail_Price))+
+  geom_point(alpha = 0.1) +
+  #geom_histogram(bins=75)+
+  labs(title = 'Retail Price by Vehicle Horsepower',
+       y='Retail Price',
+       x='Horsepower')+
+  cleanup +
+  #coord_cartesian(xlim = c(1,100), ylim = c(0,4000000))
+ geom_smooth(method = 'lm', se=FALSE, color='lightgreen')
+```
+
+```{r}
+noout%>%
+  ggplot(aes(Retail_Price, reorder(MPG_Cat,
+                                   FUN = median, Retail_Price,
+                                   decreasing = TRUE)))+
+  geom_boxplot()+
+  labs(title = 'Difference in Prices by Mileage',
+       x='Retail Price',
+       y='Mileage Category')+
+  cleanup #+
+  #coord_cartesian(xlim = c(100000,4000000))
+```
+
+```{r}
+noout_v2%>%
+  ggplot(aes(Retail_Price, reorder(variable,
+                                   FUN = median, Retail_Price,
+                                   decreasing = TRUE)))+
+  geom_boxplot()+
+  labs(title = 'Difference in Prices by Vehicle Type',
+       x='Retail Price',
+       y='Vehicle Type')+
+  cleanup #+
+  #coord_cartesian(xlim = c(100000,4000000))
+```
+
+## noout_v3
+
+```{r}
+noout_v3 <- subset(noout_v2, select = -c(18:19))
+noout_v3 <- melt(noout_v3, id.vars=c("Vehicle Name","Retail_Price",
+                                  "Dealer_Cost","Engine_Size", "Cyl","HP","City_MPG",
+                                  "Hwy_MPG","Weight","Wheel_Base","Len","Width","Weighted_MPG",
+                                  "MPG_Cat","mpg_diff"))
+noout_v3 <- subset(noout_v3, noout_v3$value==1)
+```
+
+```{r}
+noout_v3%>%
+  ggplot(aes(Retail_Price, reorder(variable,
+                                   FUN = median, Retail_Price,
+                                   decreasing = TRUE)))+
+  geom_boxplot()+
+  labs(title = 'Difference in Prices by Drive Power (Torque)',
+       x='Retail Price',
+       y='Drive Power')+
+  cleanup #+
+  #coord_cartesian(xlim = c(100000,4000000))
+```
+
+
 ## Exploratory Data Analysis
 
 ## Hypothesis Test 1 - Engine_Size Difference in MPG Difference
 
-```{r}
-inference(y = noout$Engine_Size, x = noout$MPG_Cat, est = "mean", type = "ht", null = 0, 
+```{r, warning=FALSE}
+inference(y = Engine_Size, x = MPG_Cat, data = noout, statistic = "mean", type = "ht", null = 0, 
           alternative = "greater", method = "theoretical")
 ```
 
@@ -272,9 +429,7 @@ From the box plots, we see that vehicles in High MPG category have the smallest 
 ## Hypothesis Test 2 - Highway MPG vs City MPG
 
 ```{r}
-noout$mpg_diff <- noout$Hwy_MPG - noout$City_MPG
-
-inference(y=noout$mpg_diff, est="mean", type="ci", method = "theoretical")
+inference(y = mpg_diff, data = noout, statistic ="mean", type="ci", method = "theoretical")
 ```
 
 From the above output, we see that the 95% confidence interval does not contain 0. Hence, null hypothesis that the highway mpg and city mpg are equal is rejected. We see that, on average, highway mpg is 6.7 to 7.1 mpg higher than city mpg.
@@ -282,19 +437,7 @@ From the above output, we see that the 95% confidence interval does not contain 
 ## Hypothesis Test 3
 
 ```{r}
-colnames(noout)
-```
-
-```{r}
-noout_v2 <- melt(noout, id.vars=c("Vehicle Name","AWD","RWD","Retail_Price",
-                                  "Dealer_Cost","Engine_Size", "Cyl","HP","City_MPG",
-                                  "Hwy_MPG","Weight","Wheel_Base","Len","Width","Weighted_MPG",
-                                  "MPG_Cat","mpg_diff"))
-noout_v2 <- subset(noout_v2, noout_v2$value==1)
-```
-
-```{r}
-inference(y = noout_v2$Retail_Price, x = noout_v2$variable, est = "mean", type = "ht", null = 0, 
+inference(y = Retail_Price, x = variable, data = noout_v2, statistic = "mean", type = "ht", null = 0, 
           alternative = "greater", method = "theoretical")
 ```
 
@@ -305,3 +448,181 @@ We see that the prices for different vehicles are not the same. We reject null h
 ```{r}
 summary(model2)
 ```
+
+## Because dealer cost and retail price are heavily collinear, we will remove dealer cost as an explanatory variable. It is almost as if we are trying to explain retail price variability using itself as a variable!
+
+```{r}
+model_best_v1 <- lm(Retail_Price ~ HP + Engine_Size + 
+    Cyl + City_MPG + Hwy_MPG + Weight + Wheel_Base + Len + Width + 
+    Sedan + Sports_Car + SUV + Wagon + Minivan + Pickup + AWD + 
+    RWD, data = noout)
+summary(model_best_v1)
+```
+
+## Hwy_MPG and City_MPG are highly collinear. Hence, we'll use just one - Hwy_MPG.
+
+```{r}
+model_best_v2 <- lm(Retail_Price ~ HP + Engine_Size + 
+    Cyl + Hwy_MPG + Weight + Wheel_Base + Len + Width + 
+    Sedan + Sports_Car + SUV + Wagon + Minivan + Pickup + AWD + 
+    RWD, data = noout)
+summary(model_best_v2)
+```
+
+## Engine Size, Cyl, and HP are highly collinear. We will only use HP.
+
+```{r}
+model_best_v3 <- lm(Retail_Price ~ HP +
+                      Hwy_MPG + Weight + Wheel_Base + Len + Width + 
+    Sedan + Sports_Car + SUV + Wagon + Minivan + Pickup + AWD + 
+    RWD, data = noout)
+summary(model_best_v3)
+```
+
+## Weight, Len, and Width are collinear. We will only Use Weight.
+
+```{r}
+model_best_v4 <- lm(Retail_Price ~ HP +
+                      Hwy_MPG + Weight + Wheel_Base +
+    Sedan + Sports_Car + SUV + Wagon + Minivan + Pickup + AWD + 
+    RWD, data = noout)
+summary(model_best_v4)
+```
+## Using p-value, we will do back-ward selection to get the best model:
+
+```{r}
+model_best_overall <- lm(Retail_Price ~ HP +
+                      Hwy_MPG + Weight + Wheel_Base +
+    Sedan + Sports_Car + SUV + Wagon + Minivan + Pickup + AWD + 
+    RWD, data = noout)
+summary(model_best_overall)
+```
+
+
+```{r}
+summary(model_best_overall, correlation = TRUE)
+```
+
+## Assumptions
+
+## Linearity
+
+```{r linearity}
+standardized <- rstudent(model_best_overall)
+fitted <- scale(model_best_overall$fitted.values)
+```
+
+```{r}
+{qqnorm(standardized)
+abline(0,1)}
+```
+
+Linearity met.
+
+### Normality
+
+```{r normality}
+hist(standardized)
+```
+
+Normality met.
+
+### Homogeneity and Homoscedasticity
+
+```{r homogs}
+{plot(fitted, standardized)
+abline(0,0)
+abline(v = 0)}
+```
+
+## Final Model
+
+$ RetailPrice = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD $
+
+```{r}
+HP = 0 # range from 93 - 450 in data
+HwyMPG = 0 # range from 14 - 51 in data
+Weight = 0 # range from 2035 - 6133 in data
+WheelBase = 0 # range from 89 - 140 in data
+Sedan = 0 # 0 or 1 #mutually exclusive with other car types
+SUV = 0 # 0 or 1 #mutually exclusive with other car types
+Wagon = 0 # 0 or 1 #mutually exclusive with other car types
+Minivan = 0 # 0 or 1 #mutually exclusive with other car types
+AWD = 0 # 0 or 1, mutually exclusive with RWD
+RWD = 0 # 0 or 1, mutually exclusive with AWD
+
+RetailPrice = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD 
+```
+
+## Prediction
+
+Let us assume the first base case for a vehicle with the following:
+
+A Sports Car with HP = 315, HwyMPG = 24, Weight = 3240, WheelBase = 93, AWD = 1, RWD = 0.
+
+The price of this vehicle, according to our model, would be:
+
+```{r}
+HP = 315
+HwyMPG = 24
+Weight = 3240
+WheelBase = 93
+AWD = 1
+RWD = 0
+
+RetailPrice_Base = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD 
+```
+
+The base cost would be $40,837.
+
+### Prediction 1
+
+Compared to base vehicle, how would the price be different for a vehicle that weighed 1500 - i.e., severely under the weight range in data
+
+```{r}
+Weight = 1500
+
+RetailPrice_LowWeight = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD
+```
+
+The cost of the low weight vehicle, given everything else remains the same as the base vehicle, decreases to $21,697 according to the model.
+
+### Prediction 2
+
+Compared to base vehicle, how would the price be different for a vehicle with a higher horsepower of 675, significantly above the current highest horsepower in data:
+
+```{r}
+Weight = 3240
+HP = 675
+
+RetailPrice_HighHP = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD
+```
+
+The cost of the high horsepower vehicle, given everything else remains the same as the base vehicle, increases to $94,477 according to this model!
+
+### Prediction 3
+
+Compared to base vehicle, how would the price be different for a vehicle with a significantly higher hwy mileage?
+
+```{r}
+HP = 315
+HwyMPG = 75
+
+RetailPrice_HighMPG = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD
+```
+
+The price of the high mileage vehicle, given everything else remains the same as the base vehicle, increases to $65,572 according to this model.
+
+### Prediction 4
+
+Compared to the base vehicle, how would the price be different for a vehicle with all three changes?
+
+```{r}
+Weight = 1500
+HP = 675
+HwyMPG = 75
+
+RetailPrice_AllThree = -12308 + 149*HP + 485*HwyMPG + 11*Weight-476*WheelBase+10074*Sedan+12325*SUV+8235*Wagon+6245*Minivan+3198*AWD+7254*RWD
+```
+
+The price of a vehicle with low weight (1500), high HP (675) and high mileage (75) would be $100,072 according to this model!
